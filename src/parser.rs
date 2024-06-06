@@ -1,5 +1,5 @@
 use crate::{cst::Cst, lexer::Lexer, tok::Tok};
-use std::{rc::Rc, result};
+use std::result;
 
 #[derive(Debug)]
 pub enum Err {
@@ -7,7 +7,7 @@ pub enum Err {
     UnexpectedTok(Tok<String>),
 }
 
-pub type Result = result::Result<Rc<Cst>, Err>;
+pub type Result = result::Result<Box<Cst>, Err>;
 
 pub struct Parser<'a> {
     lexer: Lexer<'a>,
@@ -34,10 +34,10 @@ impl<'a> Parser<'a> {
         self.next().ok_or(Err::UnexpectedEof)
     }
 
-    fn balance_app(left: Rc<Cst>, right: Rc<Cst>) -> Rc<Cst> {
-        match &*right {
+    fn balance_app(left: Box<Cst>, right: Box<Cst>) -> Box<Cst> {
+        match *right {
             Cst::App(middle, right) => {
-                Cst::app(Self::balance_app(left, middle.clone()), right.clone())
+                Cst::app(Self::balance_app(left, middle), right)
             }
             _ => Cst::app(left, right),
         }

@@ -32,33 +32,32 @@ impl DeBruijn {
 }
 
 fn rename_impl(
-    exp: Rc<Church>,
+    exp: Box<Church>,
     env: &mut HashMap<String, Idx>,
     lvl: Lvl,
 ) -> Rc<DeBruijn> {
-    match &*exp {
-        Church::Var(name) => match env.get(name) {
-            None => DeBruijn::free(name.to_string()),
-            Some(idx) => DeBruijn::bound(name.to_string(), lvl - 1 - *idx),
+    match *exp {
+        Church::Var(name) => match env.get(&name) {
+            None => DeBruijn::free(name),
+            Some(idx) => DeBruijn::bound(name, lvl - 1 - *idx),
         },
         Church::Abs(name, body) => {
-            let old_lvl = env.insert(name.to_string(), lvl);
-            let body = rename_impl(body.clone(), env, lvl + 1);
+            let old_lvl = env.insert(name.clone(), lvl);
+            let body = rename_impl(body, env, lvl + 1);
             if let Some(old_lvl) = old_lvl {
-                env.insert(name.to_string(), old_lvl);
+                env.insert(name.clone(), old_lvl);
             } else {
-                env.remove(name);
+                env.remove(&name);
             }
-            DeBruijn::abs(name.to_string(), body)
+            DeBruijn::abs(name, body)
         }
-        Church::App(l, r) => DeBruijn::app(
-            rename_impl(l.clone(), env, lvl),
-            rename_impl(r.clone(), env, lvl),
-        ),
+        Church::App(l, r) => {
+            DeBruijn::app(rename_impl(l, env, lvl), rename_impl(r, env, lvl))
+        }
     }
 }
 
-pub fn rename(exp: Rc<Church>) -> Rc<DeBruijn> {
+pub fn rename(exp: Box<Church>) -> Rc<DeBruijn> {
     rename_impl(exp, &mut HashMap::new(), 0)
 }
 
@@ -78,7 +77,7 @@ fn subst(
         DeBruijn::Free(_var2) => body,
         DeBruijn::Abs(var2, body) => DeBruijn::abs(
             var2.clone(),
-            subst(&(name.to_string(), *idx + 1), body.clone(), with),
+            subst(&(name.clone(), *idx + 1), body.clone(), with),
         ),
         DeBruijn::App(l, r) => DeBruijn::app(
             subst(&var, l.clone(), with.clone()),
@@ -94,7 +93,7 @@ pub fn eval(exp: Rc<DeBruijn>) -> Rc<DeBruijn> {
             let l = eval(l.clone());
             match &*l {
                 DeBruijn::Abs(x, body) => {
-                    eval(subst(&(x.to_string(), 0), body.clone(), r.clone()))
+                    eval(subst(&(x.clone(), 0), body.clone(), r.clone()))
                 }
                 _ => DeBruijn::app(l, r.clone()),
             }
