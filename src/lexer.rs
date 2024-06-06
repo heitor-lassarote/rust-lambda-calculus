@@ -8,9 +8,11 @@ pub struct Lexer<'a> {
 
 impl<'a> Lexer<'a> {
     pub fn new(input: &'a str) -> Self {
-        Lexer {
+        let mut lexer = Lexer {
             peekable: input.chars().peekable(),
-        }
+        };
+        lexer.skip_whitespace();
+        lexer
     }
 
     fn peek_char(&mut self) -> Option<char> {
