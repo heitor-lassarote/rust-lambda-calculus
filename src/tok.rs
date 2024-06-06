@@ -1,8 +1,8 @@
-#[derive(Debug)]
-pub enum Tok {
+#[derive(Debug, PartialEq, Eq)]
+pub enum Tok<IdType> {
     Lam,
     Dot,
     LPar,
     RPar,
-    Id(String),
+    Id(IdType),
 }
